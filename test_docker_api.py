@@ -1,3 +1,7 @@
+"""
+Docker API Test
+"""
+
 import unittest
 import docker
 import warnings
@@ -6,14 +10,26 @@ import time
 warnings.simplefilter("ignore", ResourceWarning)
 
 class TestRunDocker(unittest.TestCase):
+    """
+    Docker Running test
+    """
     def setUp(self):
+        """
+        Init for client
+        """
         self.client = docker.from_env()
 
     def test_run(self):
+        """
+        Running Test
+        """
         self.assertNotEqual(self.client, None)
         print(self.client.containers.run("hello-world"))
     
     def test_list_containers(self):
+        """
+        Test for listing Containers
+        """
         self.assertEqual(self.client.containers.list(), [])
         
         container = self.client.containers.run("bfirsh/reticulate-splines", detach="True")
@@ -35,10 +51,11 @@ class TestRunDocker(unittest.TestCase):
         container.stop()
     
     def test_log(self):
-        '''Check Logs on Live:
+        """
+        Check Logs on Live:
         for line in container.logs(stream=True):
             print(line.strip())
-        '''
+        """
         container = self.client.containers.run("bfirsh/reticulate-splines", detach="True")
         self.assertEqual(container.logs(),b'Reticulating spline 1...\n')
         container.stop()
