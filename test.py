@@ -18,7 +18,7 @@ class TestRunDocker(unittest.TestCase):
         
         container = self.client.containers.run("bfirsh/reticulate-splines", detach="True")
         time.sleep(5)
-        assertNotEqual(self.client.containers.list(), [])
+        self.assertNotEqual(self.client.containers.list(), [])
 
         container.stop()
         time.sleep(5)
@@ -35,11 +35,44 @@ class TestRunDocker(unittest.TestCase):
         container.stop()
     
     def test_log(self):
-        container = self.client.containers.run("bfirsh/reticulate-splines", detach="True")
+        '''Check Logs on Live:
         for line in container.logs(stream=True):
             print(line.strip())
+        '''
+        container = self.client.containers.run("bfirsh/reticulate-splines", detach="True")
+        self.assertEqual(container.logs(),b'Reticulating spline 1...\n')
         container.stop()
 
+class TestNetwork(unittest.TestCase):
+    def setUp(self):
+        self.client = docker.from_env()
+        self.ubuntu1 = self.client.containers.run("ubuntu",detach="True")
+        self.ubuntu2 = self.client.containers.run("ubuntu",detach="True")
+    
+    def test_create_network(self):
+        self.network = self.client.networks.create("network1", driver="bridge")
+        self.assertEqual(0, len(self.network.containers))
+
+        self.assertNotEqual(self.network, None)
+        self.network.connect(self.ubuntu1)
+        self.network.connect(self.ubuntu2)
+        self.assertEqual(2, len(self.network.containers))
+
+        self.network.disconnect(self.ubuntu1)
+        self.network.disconnect(self.ubuntu2)
+        self.assertEqual(0, len(self.network.containers))
+
+    def tearDown(self):
+        if(self.ubuntu1 is not None):
+            self.ubuntu1.stop()
+        if(self.ubuntu2 is not None):
+            self.ubuntu2.stop()
+        if(self.network is not None):
+            self.network.remove()
+        time.sleep(5)
+        self.assertEqual(self.ubuntu1, None)
+        self.assertEqual(self.ubuntu2, None)
+        self.assertEqual(self.network, None)
 
 if __name__ == '__main__':
     unittest.main()
