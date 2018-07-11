@@ -42,3 +42,24 @@ Feature: Response
     Scenario: look up an invalid book
     Given I search for a invalid book
     Then the result page will include "failure"
+
+    """python
+    @then('the result page will include "{text}"')
+    def step_impl(context, text):
+        if text not in context.response:
+            fail('%r not in %r' % (text, context.response))
+    """
+
+Feature: Context
+
+    """Python
+    @given('I request a new widget for an account via SOAP')
+    def step_impl(context):
+        client = Client("http://127.0.0.1:8000/soap/")
+        context.response = client.Allocate(customer_first='Firstname',
+            customer_last='Lastname', colour='red')
+
+    @then('I should receive an OK SOAP response')
+    def step_impl(context):
+        eq_(context.response['ok'], 1)
+    """

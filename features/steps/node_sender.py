@@ -1,5 +1,9 @@
 from behave import *
+import unittest
 import docker
+
+client = object()
+client.
 
 @given('a docker client')
 def docker_client(context):
