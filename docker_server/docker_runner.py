@@ -1,5 +1,5 @@
 import docker
-
+import time
 ipam_pool = docker.types.IPAMPool(
             subnet='192.168.52.0/24',
             gateway='192.168.52.254'
@@ -45,15 +45,22 @@ class WarGame(object):
             count = count + 1
         
         return self.running_containers
-    def run_snort(self):
+    def run_snort(self,network_name):
         """
         :return: snort container
         """
-        container = self.client.containers.run('linton/docker-snort',
-            detach="True",
-            cap_add=["NET_ADMIN"])
+        container = self.client.containers.run('linton/docker-snort'
+            ,detach=True
+            ,cap_add=["NET_ADMIN"]
+            ,name="snort"
+            ,command="tail -f /dev/null"
+            ,auto_remove=False
+            ,network=network_name)
+        print("[RUN_SNORT] network_name={}".format(network_name))
+        self.running_containers.append(container)
+        time.sleep(5)
         return container
-
+    
     def stop_server(self):
         for container in self.running_containers:
             container.stop()

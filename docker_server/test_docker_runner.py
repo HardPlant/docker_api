@@ -5,6 +5,10 @@ import docker_runner
 import os
 import subprocess
 
+import warnings
+
+warnings.simplefilter("ignore", ResourceWarning)
+
 class initTest(unittest.TestCase):
     def setUp(self):
         self.wargame = docker_runner.WarGame()
@@ -100,17 +104,40 @@ class connectionTest(unittest.TestCase):
         result = self.container_list[1].exec_run('curl http://server0:5000/hello')
         self.assertTrue(b'"status": 200' in result.output)
 
-class testSnort(unittest.TestCase):
+class snortTest(unittest.TestCase):
     def setUp(self):
-        self.wargame = docker_runner.WarGame(images=["node_echo_server"])
-        self.ids = self.wargame.run_snort()
-        self.container_list = self.wargame.run_server()
-        self.network_list = self.wargame.create_network()
-        self.wargame.connect_container(self.network_list[0], self.container_list[0])
-        self.wargame.connect_container(self.network_list[0], self.ids)
+        try:
+            self.wargame = docker_runner.WarGame(images=["node_echo_server"])
+            self.container_list = self.wargame.run_server()
+            self.network_list = self.wargame.create_network()
+            
+            self.ids = self.wargame.run_snort(self.network_list[0].name)
+            self.wargame.connect_container(self.network_list[0], self.container_list[0])
+        except Exception as e:
+            print(e)
     
+    def tearDown(self):
+        try:
+            for network in self.network_list:
+                for container in self.container_list:
+                    network.disconnect(container)
+        except Exception as e:
+            print(e)
+
+        self.wargame.remove_network()
+        self.wargame.stop_server()
+
     def test_connected(self):
-        pass
+        print(self.ids.status)
+        self.ids.logs(stream=True)
+        self.assertGreaterEqual(len(self.network_list[0].containers), 2)
+        result = self.container_list[0].exec_run('ping snort -c 1')
+        self.assertTrue(b"received" in result.output) # ping statisitics
+        print(result)
+        result = self.ids.exec_run('ping server0 -c 1')
+        self.assertTrue(b"received" in result.output)
+        print(result)
+        self.ids.attach()
     
 if __name__ == '__main__':
     unittest.main()
