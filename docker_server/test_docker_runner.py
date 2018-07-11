@@ -128,16 +128,11 @@ class snortTest(unittest.TestCase):
         self.wargame.stop_server()
 
     def test_connected(self):
-        print(self.ids.status)
-        self.ids.logs(stream=True)
         self.assertGreaterEqual(len(self.network_list[0].containers), 2)
         result = self.container_list[0].exec_run('ping snort -c 1')
         self.assertTrue(b"received" in result.output) # ping statisitics
-        print(result)
         result = self.ids.exec_run('ping server0 -c 1')
         self.assertTrue(b"received" in result.output)
-        print(result)
-        self.ids.attach()
     
 if __name__ == '__main__':
     unittest.main()
