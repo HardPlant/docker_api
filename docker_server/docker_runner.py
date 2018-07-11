@@ -35,15 +35,29 @@ class WarGame(object):
         """
         :return: list of containers
         """
+        count = 0
         for image in self.images:
-            container = self.client.containers.run(image, detach="True")
+            container = self.client.containers.run(image, detach="True"
+            , name="server{}".format(count)
+            , domainname="server{}".format(count))
+            
             self.running_containers.append(container)
+            count = count + 1
         
         return self.running_containers
+    def run_snort(self):
+        """
+        :return: snort container
+        """
+        container = self.client.containers.run('linton/docker-snort',
+            detach="True",
+            cap_add=["NET_ADMIN"])
+        return container
 
     def stop_server(self):
         for container in self.running_containers:
             container.stop()
+            container.remove()
 
     def get_score(self):
         pass

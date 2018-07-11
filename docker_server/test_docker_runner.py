@@ -2,6 +2,8 @@ import unittest
 import warnings
 import time
 import docker_runner
+import os
+import subprocess
 
 class initTest(unittest.TestCase):
     def setUp(self):
@@ -54,8 +56,62 @@ class networkTest(unittest.TestCase):
         self.assertTrue(len(network.containers), 1)
         self.wargame.connect_container(network, self.container_list[1])
         self.assertTrue(len(network.containers), 2)
+    
+class connectionTest(unittest.TestCase):
+    def setUp(self):
+        self.wargame = docker_runner.WarGame(images=["node_echo_server","node_echo_server"])
+        self.container_list = self.wargame.run_server()
+        self.network_list = self.wargame.create_network()
+        self.wargame.connect_container(self.network_list[0], self.container_list[0])
+        self.wargame.connect_container(self.network_list[0], self.container_list[1])
+    
 
+    def tearDown(self):
+        try:
+            for network in self.network_list:
+                for container in self.container_list:
+                    network.disconnect(container)
+        except Exception as e:
+            print(e)
 
+        self.wargame.remove_network()
+        self.wargame.stop_server()
+
+    def test_connected(self):
+        """
+        Container[0] Domainname : server0
+        Container[1] Domainname : server1
+        """
+
+        result = self.container_list[0].exec_run('ping server1 -c 1')
+        self.assertTrue(b"received" in result.output) # ping statisitics
+        result = self.container_list[1].exec_run('ping server0 -c 1')
+        self.assertTrue(b"received" in result.output)
+
+    
+    def test_message(self):
+        """
+        Container[0] Domainname : server0
+        Container[1] Domainname : server1
+        """
+
+        result = self.container_list[0].exec_run('curl http://server1:5000/hello')
+        self.assertTrue(b'"status": 200' in result.output) # status OK
+        result = self.container_list[1].exec_run('curl http://server0:5000/hello')
+        self.assertTrue(b'"status": 200' in result.output)
+
+class testSnort(unittest.TestCase):
+    def setUp(self):
+        self.wargame = docker_runner.WarGame(images=["node_echo_server"])
+        self.ids = self.wargame.run_snort()
+        self.container_list = self.wargame.run_server()
+        self.network_list = self.wargame.create_network()
+        self.wargame.connect_container(self.network_list[0], self.container_list[0])
+        self.wargame.connect_container(self.network_list[0], self.ids)
+    
+    def test_connected(self):
+        pass
+    
 if __name__ == '__main__':
     unittest.main()
     
